@@ -1,21 +1,19 @@
 import cv2
 import numpy as np
-from time import sleep
 
-largura_min=80 
-altura_min=80 
+width_min=80 #min width rectangle
+height_min=80 #min height rectangle
+offset=6 #allow error btwn pixel 
 
-offset=6 
-
-pos_linha=550  
+position_line=550  
 
 delay= 60 
 
-detec = []
-carros= 0
+detect = []
+counter= 0
 
 	
-def pega_centro(x, y, w, h):
+def center_handle(x, y, w, h):
     x1 = int(w / 2)
     y1 = int(h / 2)
     cx = x + x1
@@ -23,45 +21,45 @@ def pega_centro(x, y, w, h):
     return cx,cy
 
 cap = cv2.VideoCapture('video.mp4')
-subtracao = cv2.createBackgroundSubtractorMOG2()
+algo = cv2.createBackgroundSubtractorMOG2()
 
 while True:
     ret , frame1 = cap.read()
-    tempo = float(1/delay)
-    sleep(tempo) 
     grey = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(grey,(3,3),5)
-    img_sub = subtracao.apply(blur)
-    dilat = cv2.dilate(img_sub,np.ones((5,5)))
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    dilatada = cv2.morphologyEx (dilat, cv2. MORPH_CLOSE , kernel)
-    dilatada = cv2.morphologyEx (dilatada, cv2. MORPH_CLOSE , kernel)
-    contorno,h=cv2.findContours(dilatada,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    #applying on each frame
+    img_sub = algo.apply(blur)
+    a = cv2.dilate(img_sub,np.ones((5,5)))
+    b = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    c = cv2.morphologyEx (a, cv2.MORPH_CLOSE , b)
+    c = cv2.morphologyEx (c, cv2.MORPH_CLOSE , b)
+    countershape,h=cv2.findContours(c,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     
-    cv2.line(frame1, (25, pos_linha), (1200, pos_linha), (255,127,0), 3) 
-    for(i,c) in enumerate(contorno):
-        (x,y,w,h) = cv2.boundingRect(c)
-        validar_contorno = (w >= largura_min) and (h >= altura_min)
-        if not validar_contorno:
+    cv2.line(frame1, (25, position_line), (1200, position_line), (255,127,0), 3)
+    
+    for(i,c1) in enumerate(countershape):
+        (x,y,w,h) = cv2.boundingRect(c1)
+        validate_counter = (w >= width_min) and (h >= height_min)
+        if not validate_counter:
             continue
 
-        cv2.rectangle(frame1,(x,y),(x+w,y+h),(0,255,0),2)        
-        centro = pega_centro(x, y, w, h)
-        detec.append(centro)
-        cv2.circle(frame1, centro, 4, (0, 0,255), -1)
+        cv2.rectangle(frame1,(x,y),(x+w,y+h),(0,255,0),2)
+        cv2.putText(frame1, "Vehicle: "+str(counter), (x,y-20), cv2.FONT_HERSHEY_TRIPLEX , 1, (255, 244, 0),2)
+        center = center_handle(x, y, w, h)
+        detect.append(center)
+        cv2.circle(frame1, center, 4, (0, 0,255), -1)
 
-        for (x,y) in detec:
-            if y<(pos_linha+offset) and y>(pos_linha-offset):
-                carros+=1
-                cv2.line(frame1, (25, pos_linha), (1200, pos_linha), (0,127,255), 3)  
-                detec.remove((x,y))
-                print("car is detected : "+str(carros))        
+        for (x,y) in detect:
+            if y<(position_line+offset) and y>(position_line-offset):
+                counter+=1
+                cv2.line(frame1, (25, position_line), (1200, position_line), (0,127,255), 3)  
+                detect.remove((x,y))
+                print("Vehicle Counter: "+str(counter))        
        
-    cv2.putText(frame1, "VEHICLE COUNT : "+str(carros), (450, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255),5)
+    cv2.putText(frame1, "VEHICLE COUNT : "+str(counter), (450, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255),5)
     cv2.imshow("Video Original" , frame1)
-    cv2.imshow("Detectar",dilatada)
 
-    if cv2.waitKey(1) == 27:
+    if cv2.waitKey(1) == 13:
         break
     
 cv2.destroyAllWindows()
